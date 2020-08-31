@@ -1,0 +1,13 @@
+version: '3'
+
+volumes:
+  venv:
+
+services:
+  bot:
+    build: ./bot
+    image: mkizka/discord-bot-python-runner
+    env_file: .env
+    volumes:
+      - ./bot:/code
+      - venv:/code/.venv
