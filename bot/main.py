@@ -12,10 +12,18 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message) -> None:
+    suffix = '!py\n'
     if message.author.bot:
         return
-    if message.content == '!py':
-        await message.channel.send('hoge')
+    if message.content.startswith(suffix):
+        program = message.content[len(suffix):]
+        process = subprocess.run(
+            ['python', '-c', f'{program}'],
+            timeout=5,
+            encoding='utf-8',
+            stdout=subprocess.PIPE
+        )
+        await message.channel.send(process.stdout.strip())
 
 
 TOKEN = os.environ['TOKEN']
