@@ -1,7 +1,8 @@
 import os
 import re
-import tempfile
-import subprocess
+
+import docker
+from docker.errors import ContainerError
 import discord
 
 client = discord.Client()
@@ -19,26 +20,33 @@ async def on_message(message: discord.Message) -> None:
     match = re.match(r'!py\s```py\n(.+)\n```', message.content, flags=(re.MULTILINE | re.DOTALL))
     if match:
         program = match.group(1)
-        filepath = tempfile.mktemp(suffix='.py')
-        with open(filepath, 'w') as f:
-            f.write(program)
         try:
-            process = subprocess.run(
-                ['python', f'{filepath}'],
-                timeout=5,
-                encoding='utf-8',
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            result = f'```\n{process.stderr or process.stdout}\n```'
-        except Exception as e:
-            result = f'実行に失敗しました\n'
-            result += f'入力\n'
-            result += f'```py{program}```\n'
-            result += f'エラー\n'
-            result += f'```{e}```'
+            result = run_docker_python(program)
+            if not result.startswith('http'):
+                result = f'```\n{result}\n```'
+        except ContainerError as e:
+            error = e.stderr.decode('utf-8')
+            if error:
+                result = f'```\n{error}\n```'
+            else:
+                result = 'エラー出力が空だったか、タイムアウトしました'
         await message.channel.send(result)
 
 
-TOKEN = os.environ['TOKEN']
-client.run(TOKEN)
+def run_docker_python(program: str) -> str:
+    docker_client = docker.from_env()
+    result = docker_client.containers.run(
+        image='python:3.8-slim',
+        environment={
+            'PROGRAM': program
+        },
+        command=f'bash -c \"echo \\"$PROGRAM\\" > run.py && timeout 5 python run.py\"',
+        working_dir='/code',
+        remove=True
+    )
+    return result.decode('utf-8')
+
+
+if __name__ == '__main__':
+    TOKEN = os.environ['TOKEN']
+    client.run(TOKEN)
