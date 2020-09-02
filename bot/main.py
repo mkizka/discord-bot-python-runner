@@ -1,5 +1,6 @@
 import os
 import re
+from urllib import parse
 
 import docker
 from docker.errors import ContainerError
@@ -22,7 +23,7 @@ async def on_message(message: discord.Message) -> None:
         program = match.group(1)
         try:
             result = run_docker_python(program)
-            if not result.startswith('http'):
+            if not parse.urlparse(result).scheme:
                 result = f'```\n{result}\n```'
         except ContainerError as e:
             error = e.stderr.decode('utf-8')
