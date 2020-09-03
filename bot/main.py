@@ -24,13 +24,13 @@ async def on_message(message: discord.Message) -> None:
         try:
             result = run_docker_python(program)
             if not parse.urlparse(result).scheme:
-                result = f'```\n{result}\n```'
+                result = f'```\n{result[:500]}\n```'
         except ContainerError as e:
             error = e.stderr.decode('utf-8')
             if error:
-                result = f'```\n{error}\n```'
+                result = f'```\n{error[:500]}\n```'
             else:
-                result = 'エラー出力が空だったか、タイムアウトしました'
+                result = '`エラー出力が空だったか、タイムアウトしました`'
         await message.channel.send(result)
 
 
